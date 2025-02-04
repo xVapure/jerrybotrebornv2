@@ -387,7 +387,7 @@ async def market_buy(ctx: discord.ApplicationContext, item_id: str, amount: int)
     
     await ctx.respond(
         f"Confirm buying {amount}x {item['name']} for ${total_price}.\n"
-        "Type `/market confirm buy` to confirm or `/market cancel` to cancel.",
+        "Type `buy confirm` to confirm or `buy cancel` to cancel.",
         ephemeral=False
     )
 
@@ -424,53 +424,9 @@ async def market_sell(ctx: discord.ApplicationContext, item_id: str, amount: str
 
     await ctx.respond(
         f"Confirm selling {amount}x {item['name']} for ${total_price}.\n"
-        "Type `/market confirm sell` to confirm or `/market cancel` to cancel.",
+        "Type `sell confirm` to confirm or `sell cancel` to cancel.",
         ephemeral=False
     )
-
-
-@market_group.command(name="confirm", description="Confirm a pending market action")
-async def market_confirm(ctx: discord.ApplicationContext, action: str):
-    if ctx.author.id not in pending_confirmations:
-        await ctx.respond("You have no pending market actions to confirm.", ephemeral=True)
-        return
-
-    action_type, item_id, amount, channel_id = pending_confirmations[ctx.author.id]
-
-    if action.lower() != action_type:
-        await ctx.respond("Invalid confirmation. Please confirm the correct action.", ephemeral=True)
-        return
-
-    user = get_user(ctx.author.id)
-
-    if action_type == "buy":
-        item = market_items[item_id]
-        total_price = item["price"] * amount
-        user["balance"] -= total_price
-        add_item(ctx.author.id, item_id, amount)
-        await ctx.respond(f"You bought {amount}x {item['name']} for ${total_price}.", ephemeral=False)
-
-    elif action_type == "sell":
-        item = all_items[item_id]
-        total_price = item["sell_price"] * amount
-        remove_item(ctx.author.id, item_id, amount)
-        user["balance"] += total_price
-        save_users()
-        await ctx.respond(f"You sold {amount}x {item['name']} for ${total_price}.", ephemeral=False)
-
-    del pending_confirmations[ctx.author.id]
-    del ongoing_interactions[ctx.author.id]
-
-
-@market_group.command(name="cancel", description="Cancel a pending market action")
-async def market_cancel(ctx: discord.ApplicationContext):
-    if ctx.author.id not in pending_confirmations:
-        await ctx.respond("You have no pending market actions to cancel.", ephemeral=True)
-        return
-
-    del pending_confirmations[ctx.author.id]
-    del ongoing_interactions[ctx.author.id]
-    await ctx.respond("Market action canceled.", ephemeral=True)
 
 @bot.event
 async def on_message(message):
@@ -731,7 +687,7 @@ async def inventory(ctx: discord.ApplicationContext, user: discord.User = None, 
 async def grant(ctx, target: discord.User, item_id: str, amount: int = 1):
     # Check if the command issuer is an authorized user
     if str(ctx.author.id) not in AUTHORIZED_USERS:
-        await ctx.reply("You do not have permission to use this command.")
+        await ctx.reply("We have recently migrated to slash commands, type `/` and find Jerry to start using your favourite commands!")
         return
 
     if item_id.lower() == "all":
@@ -804,7 +760,7 @@ async def gift(
 async def reset(ctx, target: discord.User):
     # Ensure the command issuer is the authorized admin
     if str(ctx.author.id) not in AUTHORIZED_USERS:
-        await ctx.reply("You do not have permission to use this command.")
+        await ctx.reply("We have recently migrated to slash commands, type `/` and find Jerry to start using your favourite commands!")
         return
 
     # Reset the target user's data
@@ -820,7 +776,7 @@ async def reset(ctx, target: discord.User):
 @bot.command(aliases = ["setbal"])
 async def setbalance(ctx, target: discord.User, amount: int):
     if str(ctx.author.id) not in AUTHORIZED_USERS:
-        await ctx.reply("You do not have permission to use this command.")
+        await ctx.reply("We have recently migrated to slash commands, type `/` and find Jerry to start using your favourite commands!")
         return
 
     # Set the target user's balance
@@ -832,7 +788,7 @@ async def setbalance(ctx, target: discord.User, amount: int):
 @bot.command()
 async def stats(ctx, target: discord.User):
     if str(ctx.author.id) not in AUTHORIZED_USERS:
-        await ctx.reply("You do not have permission to use this command.")
+        await ctx.reply("We have recently migrated to slash commands, type `/` and find Jerry to start using your favourite commands!")
         return
 
     user_data = get_user(target.id)
@@ -1020,6 +976,10 @@ async def gamble(ctx: discord.ApplicationContext,
         save_users()
         await ctx.respond(f"💸 **You lost ${amount}.** Your new balance is **${user['balance']}**.")
 
+@gamble.error
+async def work_cooldown(ctx: discord.ApplicationContext, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.respond(f"This command is on cooldown. Try again in {round(error.retry_after, 2)} seconds.", ephemeral=True)
 
 @bot.slash_command(name="duel", description="Challenge another user to a duel for money!")
 async def duel(ctx: discord.ApplicationContext, 
@@ -1068,7 +1028,7 @@ async def duel(ctx: discord.ApplicationContext,
     # Notify about the duel request
     await ctx.respond(
         f"⚔️ **Duel Challenge!** <@{ctx.author.id}> has challenged <@{target.id}> to a duel for **${amount}**!\n"
-        "Both participants must confirm with **`/duel accept`** or cancel with **`/duel cancel`**."
+        "Both participants must confirm with **`duel accept`** or cancel with **`duel cancel`**."
     )
 
     confirmations = set()
@@ -1205,7 +1165,7 @@ async def trade(ctx: discord.ApplicationContext,
 async def spawn(ctx, item_id: str):
     # Check if the user is authorized
     if str(ctx.author.id) not in AUTHORIZED_USERS:
-        await ctx.reply("You do not have permission to use this command.")
+        await ctx.reply("We have recently migrated to slash commands, type `/` and find Jerry to start using your favourite commands!")
         return
 
     # Validate the item ID
@@ -1270,7 +1230,7 @@ async def spawn(ctx, item_id: str):
 async def whitelist(ctx, user: discord.User):
     # Check if the user is authorized
     if str(ctx.author.id) not in AUTHORIZED_USERS:
-        await ctx.reply("You do not have permission to use this command.")
+        await ctx.reply("We have recently migrated to slash commands, type `/` and find Jerry to start using your favourite commands!")
         return
 
     # Add the user to the authorized list
@@ -1415,7 +1375,7 @@ async def auction_show(ctx: discord.ApplicationContext,
         f"Market Code: `{a['market_code']}`, Item: `{a['item_id']}`, Price: ${a['price']}, Seller: <@{a['seller_id']}>"
         for a in listings if a["buyer_id"] is None
     ])
-    await ctx.respond(f"**Auction Listings (Page {page}/{total_pages}):**\n{auction_list}", ephemeral=True,allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=False))
+    await ctx.respond(f"**Auction Listings (Page {page}/{total_pages}):**\n{auction_list}", ephemeral=False,allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=False))
 
 @auction_group.command(name="pending", description="View your pending auctions.")
 async def auction_pending(ctx: discord.ApplicationContext,
@@ -1640,6 +1600,10 @@ async def rob_cooldown(ctx: discord.ApplicationContext, error):
 @bot.slash_command(name="rob", description="Attempt to rob another user (50% success rate).")
 @commands.cooldown(1, 300, commands.BucketType.user)  # 5-minute cooldown
 async def rob(ctx: discord.ApplicationContext, target: discord.User):
+    if ctx.author == target:
+        await ctx.respond("You cannot rob yourself!", ephemeral=True)
+        return
+
     if ctx.author.id in ongoing_interactions or target.id in ongoing_interactions:
         await ctx.respond("One of the participants has a pending action that they need to resolve.", ephemeral=True)
         return
@@ -1732,9 +1696,68 @@ async def rob_cooldown(ctx: discord.ApplicationContext, error):
         await ctx.respond(f"This command is on cooldown. Try again in {round(error.retry_after, 2)} seconds.", ephemeral=True)
 
 
+@rob.error
+async def rob_cooldown(ctx: discord.ApplicationContext, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.respond(f"This command is on cooldown. Try again in {round(error.retry_after, 2)} seconds.", ephemeral=True)
+
+
 @bot.slash_command(name="ping", description="Check bot latency")
 async def ping(ctx: discord.ApplicationContext):
     latency = bot.latency * 1000  # Convert to milliseconds
     await ctx.respond(f"Pong! 🏓 `{latency:.2f}ms`")
+
+@bot.command(aliases=["speak"])
+async def say(ctx, *, msg=None):
+    if str(ctx.author.id) not in AUTHORIZED_USERS:
+        await ctx.reply("We have recently migrated to slash commands, type `/` and find Jerry to start using your favourite commands!")
+        return
+    
+    if msg is None:
+        await ctx.reply("ㅤ")  # Sends an invisible space character
+    else:
+        try:
+            await ctx.message.delete()  # Delete the command message
+        except discord.Forbidden:
+            await ctx.reply("I don't have permission to delete messages.")
+            return
+
+        await ctx.send(msg)  # Send the user's message
+
+@bot.command(aliases=["dm"])
+async def directmessage(ctx, target: str, *, message: str):
+    if str(ctx.author.id) not in AUTHORIZED_USERS:
+        await ctx.reply("We have recently migrated to slash commands, type `/` and find Jerry to start using your favourite commands!")
+        return
+
+    if target.lower() == "all":
+        # Sending a message to all registered users
+        failed = 0
+        success = 0
+
+        for user_id in users.keys():
+            try:
+                user = await bot.fetch_user(int(user_id))
+                await user.send(message)
+                success += 1
+            except discord.Forbidden:
+                failed += 1
+            except discord.HTTPException:
+                failed += 1
+
+        await ctx.reply(f"✅ Successfully sent DMs to {success} users.\n❌ Failed to DM {failed} users (they might have DMs disabled).")
+    
+    else:
+        # Sending a message to a specific user
+        try:
+            user = await commands.UserConverter().convert(ctx, target)
+            await user.send(message)
+            await ctx.reply(f"✅ Successfully sent a DM to {user.name}.")
+        except commands.BadArgument:
+            await ctx.reply("❌ Invalid user. Please mention a valid user.")
+        except discord.Forbidden:
+            await ctx.reply("❌ I cannot send a DM to this user. They might have DMs disabled.")
+        except discord.HTTPException:
+            await ctx.reply("❌ Failed to send the message due to a network error.")
 
 bot.run(DISCORD_BOT_TOKEN)
